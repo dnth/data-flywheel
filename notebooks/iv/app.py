@@ -89,7 +89,7 @@ def run(xml_dir, img_dir, labels):
     resized_img = im.resizing_img()
     resized_rects = im.get_resized_rects()
     
-    rects = st_img_label(resized_img, box_color="blue", rects=resized_rects)
+    rects = st_img_label(resized_img, box_color="green", rects=resized_rects)
     
     if rects:
         preview_imgs = im.init_annotation(rects)
