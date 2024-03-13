@@ -44,10 +44,21 @@ def save_annotation(im, xml_file_name):
     im.save_annotation()
     st.success(f"Annotation saved to {xml_file_name}")
 
+def calculate_progress():
+    current_image_index = st.session_state["image_index"] + 1
+    total_files = len(st.session_state["files"])
+    progress = (current_image_index / total_files) if total_files > 0 else 0
+    return progress
+
 def display_sidebar(xml_dir):
     n_files = len(st.session_state["files"])
     current_image_index = st.session_state["image_index"] + 1
     st.sidebar.write(f"Image {current_image_index} of {n_files}")
+
+    progress = calculate_progress()
+    
+    st.sidebar.progress(progress)
+    st.sidebar.write(f"Progress: {progress*100:.2f}%")
     
     st.sidebar.selectbox(
         "Files",
