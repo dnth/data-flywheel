@@ -1,59 +1,50 @@
-import streamlit as st
 import os
+import streamlit as st
 from streamlit_img_label import st_img_label
 from streamlit_img_label.manage import ImageManager, ImageDirManager
 from streamlit_shortcuts import add_keyboard_shortcuts
 
-add_keyboard_shortcuts({
-    'a': "Previous image",
-    'd': "Next image",
-    'w': "Save",
-    's': "Remove XML file"
-})
+def setup_shortcuts():
+    add_keyboard_shortcuts({
+        'a': "Previous image",
+        'd': "Next image",
+        'w': "Save",
+        's': "Remove XML file"
+    })
 
-def run(xml_dir, img_dir, labels):
-    st.set_option("deprecation.showfileUploaderEncoding", False)
-    idm = ImageDirManager(img_dir, xml_dir)
-
+def setup_session_state(idm):
     if "files" not in st.session_state:
         st.session_state["files"] = idm.get_exist_annotation_files('relabel_list.txt')
         st.session_state["image_index"] = 0
     else:
         idm.set_annotation_files(st.session_state["files"])
-    
-    def refresh():
-        st.session_state["files"] = idm.get_exist_annotation_files('relabel_list.txt')
-        st.session_state["image_index"] = 0
-    
-    def next_image():
-        image_index = st.session_state["image_index"]
-        if image_index < len(st.session_state["files"]) - 1:
-            st.session_state["image_index"] += 1
-        else:
-            st.warning('This is the last image.')
-    
-    def previous_image():
-        image_index = st.session_state["image_index"]
-        if image_index > 0:
-            st.session_state["image_index"] -= 1
-        else:
-            st.warning('This is the first image.')
-    
-    def remove_xml_file():
-        xml_file_name = st.session_state["files"][st.session_state["image_index"]]
-        xml_file_path = os.path.join(xml_dir, xml_file_name)
-        os.remove(xml_file_path)
-        st.warning(f"Removed XML file: {xml_file_name}")
-    
-    def go_to_image():
-        file_index = st.session_state["files"].index(st.session_state["file"])
-        st.session_state["image_index"] = file_index
-    
-    def save_annotation():
-        im.save_annotation()
-        st.success(f"Annotation saved to {xml_file_name}")
-    
-    # Sidebar: show status
+
+def refresh():
+    st.session_state["files"] = idm.get_exist_annotation_files('relabel_list.txt')
+    st.session_state["image_index"] = 0
+
+def change_image(delta):
+    image_index = st.session_state["image_index"]
+    if 0 <= image_index + delta < len(st.session_state["files"]):
+        st.session_state["image_index"] += delta
+    else:
+        st.warning('This is the first/last image.')
+
+def remove_xml_file(xml_dir):
+    xml_file_name = st.session_state["files"][st.session_state["image_index"]]
+    xml_file_path = os.path.join(xml_dir, xml_file_name)
+    os.remove(xml_file_path)
+    st.warning(f"Removed XML file: {xml_file_name}")
+
+def go_to_image():
+    file_index = st.session_state["files"].index(st.session_state["file"])
+    st.session_state["image_index"] = file_index
+
+def save_annotation(im, xml_file_name):
+    im.save_annotation()
+    st.success(f"Annotation saved to {xml_file_name}")
+
+def display_sidebar(xml_dir):
     n_files = len(st.session_state["files"])
     st.sidebar.write("Total annotate files:", n_files)
     
@@ -67,14 +58,34 @@ def run(xml_dir, img_dir, labels):
     
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        st.button(label="Previous image", on_click=previous_image)
+        st.button(label="Previous image", on_click=change_image, args=(-1,))
     with col2:
-        st.button(label="Next image", on_click=next_image)
+        st.button(label="Next image", on_click=change_image, args=(1,))
     
     st.sidebar.button(label="Refresh", on_click=refresh)
-    st.sidebar.button(label="Remove XML file", on_click=remove_xml_file)
+    st.sidebar.button(label="Remove XML file", on_click=remove_xml_file, args=(xml_dir,))
+
+def display_annotation(im, labels):
+    rects = st_img_label(im.resized_img, box_color="green", rects=im.resized_rects)
     
-    # Main content: display images and annotations
+    if rects:
+        preview_imgs = im.init_annotation(rects)
+        for i, prev_img in enumerate(preview_imgs):
+            prev_img[0].thumbnail((300, 300))
+            col1, col2 = st.columns(2)
+            with col1:
+                col1.image(prev_img[0])
+            with col2:
+                default_index = labels.index(prev_img[1]) if prev_img[1] else 0
+                select_label = col2.selectbox("Label", labels, key=f"label_{i}", index=default_index)
+                im.set_annotation(i, select_label)
+
+def run(xml_dir, img_dir, labels):
+    st.set_option("deprecation.showfileUploaderEncoding", False)
+    idm = ImageDirManager(img_dir, xml_dir)
+    setup_session_state(idm)
+    setup_shortcuts()
+    
     xml_file_name = st.session_state["files"][st.session_state["image_index"]]
     img_file_name = os.path.splitext(xml_file_name)[0] + ".jpg"
     img_path = os.path.join(img_dir, img_file_name)
@@ -85,36 +96,14 @@ def run(xml_dir, img_dir, labels):
         return
     
     im = ImageManager(img_path, xml_path)
-    img = im.get_img()
-    resized_img = im.resizing_img()
-    resized_rects = im.get_resized_rects()
+    im.resized_img = im.resizing_img()
+    im.resized_rects = im.get_resized_rects()
     
     st.title(f"Image: {img_file_name}")
-    rects = st_img_label(resized_img, box_color="green", rects=resized_rects)
+    display_annotation(im, labels)
+    display_sidebar(xml_dir)
     
-    if rects:
-        preview_imgs = im.init_annotation(rects)
-        for i, prev_img in enumerate(preview_imgs):
-            prev_img[0].thumbnail((300, 300))
-            col1, col2 = st.columns(2)
-            with col1:
-                col1.image(prev_img[0])
-            with col2:
-
-                default_index = 0
-                if prev_img[1]:
-                    default_index = labels.index(prev_img[1])
-
-                select_label = col2.selectbox(
-                    "Label",
-                    labels,
-                    key=f"label_{i}",
-                    index=default_index
-                )
-                im.set_annotation(i, select_label)
-    
-    st.button(label="Save", on_click=save_annotation)
-
+    st.button(label="Save", on_click=save_annotation, args=(im, xml_file_name))
 
 if __name__ == "__main__":
     custom_labels = ["person"]
