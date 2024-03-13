@@ -78,7 +78,7 @@ def display_sidebar(xml_dir):
     st.sidebar.button(label="Remove XML file", on_click=remove_xml_file, args=(xml_dir,))
 
 def display_annotation(im, labels):
-    rects = st_img_label(im.resized_img, box_color="green", rects=im.resized_rects)
+    rects = st_img_label(im.resized_img, box_color="limegreen", rects=im.resized_rects)
     
     if rects:
         preview_imgs = im.init_annotation(rects)
