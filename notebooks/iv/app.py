@@ -89,6 +89,7 @@ def run(xml_dir, img_dir, labels):
     resized_img = im.resizing_img()
     resized_rects = im.get_resized_rects()
     
+    st.title(f"Image: {img_file_name}")
     rects = st_img_label(resized_img, box_color="green", rects=resized_rects)
     
     if rects:
