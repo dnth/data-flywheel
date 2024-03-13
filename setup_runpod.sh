@@ -33,7 +33,7 @@ pip install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu113/
 echo -e "${GREEN}Installing mmdet${NC}"
 pip install mmdet==2.17.0 --upgrade -q
 
-echo -e "${GREEN}Altering mmdet buggy line of code${NC}"
+echo -e "${YELLOW}Altering mmdet buggy line of code${NC}"
 file_path="/root/miniforge-pypy3/envs/icevision/lib/python3.9/site-packages/mmdet/datasets/builder.py"
 original_line="resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))"
 new_line="resource.setrlimit(resource.RLIMIT_NOFILE, (4096, 4096))"
@@ -45,5 +45,10 @@ else
   echo "File not found: $file_path"
 fi
 
+echo -e "${YELLOW}Testing icevision imports..${NC}"
+if python -c "from icevision.all import *" 2>/dev/null; then
+    echo -e "${GREEN}Import successful. Setup complete!${NC}"
+  else
+    echo -e "${RED}Import failed!${NC}"
+fi
 
-echo -e "${GREEN}Setup complete!${NC}"
