@@ -46,7 +46,8 @@ def save_annotation(im, xml_file_name):
 
 def display_sidebar(xml_dir):
     n_files = len(st.session_state["files"])
-    st.sidebar.write("Total annotate files:", n_files)
+    current_image_index = st.session_state["image_index"] + 1
+    st.sidebar.write(f"Image {current_image_index} of {n_files}")
     
     st.sidebar.selectbox(
         "Files",
@@ -99,7 +100,7 @@ def run(xml_dir, img_dir, labels):
     im.resized_img = im.resizing_img()
     im.resized_rects = im.get_resized_rects()
     
-    st.title(f"Image: {img_file_name}")
+    st.subheader(f"Image filename: {img_file_name}")
     display_annotation(im, labels)
     display_sidebar(xml_dir)
     
