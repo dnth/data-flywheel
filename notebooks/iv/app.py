@@ -14,15 +14,15 @@ add_keyboard_shortcuts({
 def run(xml_dir, img_dir, labels):
     st.set_option("deprecation.showfileUploaderEncoding", False)
     idm = ImageDirManager(img_dir, xml_dir)
-    
+
     if "files" not in st.session_state:
-        st.session_state["files"] = idm.get_exist_annotation_files()
+        st.session_state["files"] = idm.get_exist_annotation_files('relabel_list.txt')
         st.session_state["image_index"] = 0
     else:
         idm.set_annotation_files(st.session_state["files"])
     
     def refresh():
-        st.session_state["files"] = idm.get_exist_annotation_files()
+        st.session_state["files"] = idm.get_exist_annotation_files('relabel_list.txt')
         st.session_state["image_index"] = 0
     
     def next_image():
@@ -113,6 +113,7 @@ def run(xml_dir, img_dir, labels):
                 im.set_annotation(i, select_label)
     
     st.button(label="Save", on_click=save_annotation)
+
 
 if __name__ == "__main__":
     custom_labels = ["person"]
