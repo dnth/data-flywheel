@@ -3,6 +3,12 @@ notebooks/iv/pascal_voc_annotations/*
 
 .vscode/
 
+wandb/
+checkpoints/
+models/
+
+relabel_list.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
