@@ -45,10 +45,27 @@ else
   echo "File not found: $file_path"
 fi
 
+echo -e "${GREEN}Installing streamlit and its dependencies...${NC}"
+pip install streamlit streamlit-shortcuts -q
+
+echo -e "${GREEN}Installing dnth/streamlit-img-label${NC}"
+cd ..
+echo -e "${YELLOW}Cloning streamlit-img-label repository...${NC}"
+git clone https://github.com/dnth/streamlit-img-label/ -b icevision
+cd streamlit-img-label
+pip install -e .
+
+echo -e "${GREEN}Installing other labeling dependencies...${NC}"
+pip install pyarrow ipywidgets gdown pascal-voc-writer -q
+
+echo -e "${GREEN}nvtop and htop${NC}"
+apt update
+apt install -y nvtop htop
+
+
 echo -e "${YELLOW}Testing icevision imports..${NC}"
 if python -c "from icevision.all import *" 2>/dev/null; then
-    echo -e "${GREEN}Import successful. Setup complete!${NC}"
+    echo -e "${GREEN}Import successful!${NC}"
   else
     echo -e "${RED}Import failed!${NC}"
 fi
-
