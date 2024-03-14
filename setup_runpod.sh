@@ -17,7 +17,7 @@ conda create -n icevision python=3.9 -y
 conda activate icevision
 
 echo -e "${GREEN}Installing icevision from master${NC}"
-cd ..
+cd /root
 echo -e "${YELLOW}Cloning icevision repository...${NC}"
 git clone https://github.com/dnth/icevision
 cd icevision
@@ -49,7 +49,7 @@ echo -e "${GREEN}Installing streamlit and its dependencies...${NC}"
 pip install streamlit streamlit-shortcuts -q
 
 echo -e "${GREEN}Installing dnth/streamlit-img-label${NC}"
-cd ..
+cd /root
 echo -e "${YELLOW}Cloning streamlit-img-label repository...${NC}"
 git clone https://github.com/dnth/streamlit-img-label/ -b icevision
 cd streamlit-img-label
