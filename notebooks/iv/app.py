@@ -89,7 +89,7 @@ def display_annotation(im, labels):
         preview_imgs = im.init_annotation(rects)
         
         # Add a slider to control the preview image width
-        prev_img_width = st.slider("Preview Image Width", min_value=100, max_value=500, value=300, step=50)
+        prev_img_width = st.sidebar.slider("Preview Image Width", min_value=100, max_value=500, value=300, step=50)
         
         for i, prev_img in enumerate(preview_imgs):
             # Get the original width and height of the preview image
@@ -133,8 +133,9 @@ def run(xml_dir, img_dir, labels):
     im.resized_rects = im.get_resized_rects()
     
     st.subheader(f"Image filename: {img_file_name}")
-    display_annotation(im, labels)
     display_sidebar(xml_dir)
+    display_annotation(im, labels)
+    
     
     st.button(label="Save", on_click=save_annotation, args=(im, xml_file_name))
 
