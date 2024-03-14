@@ -3,6 +3,10 @@ import streamlit as st
 from streamlit_img_label import st_img_label
 from streamlit_img_label.manage import ImageManager, ImageDirManager
 from streamlit_shortcuts import add_keyboard_shortcuts
+from PIL import Image
+
+
+st.set_page_config(layout="wide")
 
 def setup_shortcuts():
     add_keyboard_shortcuts({
@@ -77,20 +81,37 @@ def display_sidebar(xml_dir):
     st.sidebar.button(label="Refresh", on_click=refresh)
     st.sidebar.button(label="Remove XML file", on_click=remove_xml_file, args=(xml_dir,))
 
+
 def display_annotation(im, labels):
     rects = st_img_label(im.resized_img, box_color="limegreen", rects=im.resized_rects)
     
     if rects:
         preview_imgs = im.init_annotation(rects)
+        
+        # Add a slider to control the preview image width
+        prev_img_width = st.slider("Preview Image Width", min_value=100, max_value=500, value=300, step=50)
+        
         for i, prev_img in enumerate(preview_imgs):
-            prev_img[0].thumbnail((300, 300))
+            # Get the original width and height of the preview image
+            original_width, original_height = prev_img[0].size
+            
+            # Calculate the aspect ratio of the preview image
+            aspect_ratio = original_width / original_height
+            
+            # Calculate the new height based on the desired width and aspect ratio
+            new_height = int(prev_img_width / aspect_ratio)
+            
+            # Resize the image based on the new width and calculated height
+            resized_img = prev_img[0].resize((prev_img_width, new_height), Image.ANTIALIAS)
+            
             col1, col2 = st.columns(2)
             with col1:
-                col1.image(prev_img[0])
+                col1.image(resized_img)
             with col2:
                 default_index = labels.index(prev_img[1]) if prev_img[1] else 0
                 select_label = col2.selectbox("Label", labels, key=f"label_{i}", index=default_index)
                 im.set_annotation(i, select_label)
+
 
 def run(xml_dir, img_dir, labels):
     st.set_option("deprecation.showfileUploaderEncoding", False)
