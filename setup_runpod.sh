@@ -34,9 +34,6 @@ mim install mmcv-full==1.6.0
 echo -e "${GREEN}Installing mmdet${NC}"
 pip install mmdet==2.25.0 --upgrade
 
-echo -e "${GREEN}Installing fastai${NC}"
-pip install fastai==2.7.10
-
 echo -e "${YELLOW}Altering mmdet buggy line of code${NC}"
 file_path="/root/miniforge-pypy3/envs/icevision/lib/python3.9/site-packages/mmdet/datasets/builder.py"
 original_line="resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))"
