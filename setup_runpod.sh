@@ -25,13 +25,17 @@ echo -e "${YELLOW}Installing icevision dependencies...${NC}"
 pip install -e .[all]
 
 echo -e "${GREEN}Installing torch and its dependencies${NC}"
-pip install torch==1.10.0+cu113 torchvision==0.11.1+cu113 torchtext==0.11.0 -f https://download.pytorch.org/whl/torch_stable.html --upgrade
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117 --upgrade
 
 echo -e "${GREEN}Installing mmcv${NC}"
-pip install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.10.0/index.html --upgrade -q
+pip install -U openmim
+mim install mmcv-full==1.6.0
 
 echo -e "${GREEN}Installing mmdet${NC}"
-pip install mmdet==2.17.0 --upgrade -q
+pip install mmdet==2.25.0 --upgrade
+
+echo -e "${GREEN}Installing fastai${NC}"
+pip install fastai==2.7.10
 
 echo -e "${YELLOW}Altering mmdet buggy line of code${NC}"
 file_path="/root/miniforge-pypy3/envs/icevision/lib/python3.9/site-packages/mmdet/datasets/builder.py"
@@ -67,7 +71,7 @@ pip install -e .
 echo -e "${GREEN}Installing other labeling dependencies...${NC}"
 pip install pyarrow ipywidgets gdown pascal-voc-writer -q
 
-echo -e "${GREEN}nvtop and htop${NC}"
+echo -e "${GREEN}Installing nvtop and htop${NC}"
 apt update
 apt install -y nvtop htop
 
