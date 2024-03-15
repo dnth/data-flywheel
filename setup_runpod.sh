@@ -45,6 +45,15 @@ else
   echo "File not found: $file_path"
 fi
 
+echo -e "${YELLOW}Modifying vfnet_head.py file${NC}"
+file_path="/root/miniforge-pypy3/envs/mim/lib/python3.9/site-packages/mmdet/models/dense_heads/vfnet_head.py"
+if [ -f "$file_path" ]; then
+  sed -i '/if self.training:/,/return cls_score, bbox_pred_refine/c\		return cls_score, bbox_pred, bbox_pred_refine' "$file_path"
+  echo "File modified successfully."
+else
+  echo "File not found: $file_path"
+fi
+
 echo -e "${GREEN}Installing streamlit and its dependencies...${NC}"
 pip install streamlit streamlit-shortcuts -q
 
