@@ -102,7 +102,7 @@ def display_annotation(im, labels):
             new_height = int(prev_img_width / aspect_ratio)
             
             # Resize the image based on the new width and calculated height
-            resized_img = prev_img[0].resize((prev_img_width, new_height), Image.ANTIALIAS)
+            resized_img = prev_img[0].resize((prev_img_width, new_height))
             
             col1, col2 = st.columns(2)
             with col1:
@@ -140,5 +140,5 @@ def run(xml_dir, img_dir, labels):
     st.button(label="Save", on_click=save_annotation, args=(im, xml_file_name))
 
 if __name__ == "__main__":
-    custom_labels = ["person"]
-    run("pascal_voc_annotations/", '/workspace/yolo_v8_training/oiv7_full/validation/', custom_labels)
+    custom_labels = ["bowling_ball"]
+    run("pascal_voc_annotations_bowling_ball/", '/workspace/yolo_v8_training/oiv7_full/validation/', custom_labels)
