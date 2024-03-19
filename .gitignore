@@ -1,4 +1,4 @@
-notebooks/iv/pascal_voc_annotations/*
+notebooks/iv/pascal_voc_annotations*
 *.parquet
 
 .vscode/
