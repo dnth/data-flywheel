@@ -1,3 +1,4 @@
+
 notebooks/iv/pascal_voc_annotations*
 *.parquet
 
@@ -6,6 +7,7 @@ notebooks/iv/pascal_voc_annotations*
 wandb/
 checkpoints/
 models/
+artifacts/
 
 relabel_list.txt
 

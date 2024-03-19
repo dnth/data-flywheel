@@ -141,4 +141,4 @@ def run(xml_dir, img_dir, labels):
 
 if __name__ == "__main__":
     custom_labels = ["bowling_ball"]
-    run("pascal_voc_annotations_bowling_ball/", '/workspace/yolo_v8_training/oiv7_full/validation/', custom_labels)
+    run("pascal_voc_annotations_bowling_ball/", '/workspace/yolo_v8_training/oiv7_full/train/', custom_labels)
