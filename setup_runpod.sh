@@ -28,15 +28,15 @@ echo -e "${YELLOW}Installing icevision dependencies...${NC}"
 pip install -e .[all]
 
 echo -e "${GREEN}Installing torch and its dependencies${NC}"
-pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117 --upgrade
+pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118 --upgrade
 
 echo -e "${GREEN}Installing mmcv${NC}"
 pip install -U openmim
 pip install -U ninja psutil
-mim install mmcv-full==1.6.0
+mim install mmcv-full==1.7.2
 
 echo -e "${GREEN}Installing mmdet${NC}"
-pip install mmdet==2.25.0 --upgrade
+pip install mmdet==2.28.2 --upgrade
 
 echo -e "${YELLOW}Altering mmdet buggy line of code${NC}"
 file_path="/root/miniforge-pypy3/envs/icevision/lib/python3.10/site-packages/mmdet/datasets/builder.py"
