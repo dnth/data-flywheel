@@ -89,8 +89,7 @@ class DataFlywheel:
 
     def relabel_data(self):
         logger.info("Launching streamlit to review annotations...")
-
-        logger.info("Review annotations: http://0.0.0.0:8501")
+        logger.info("Review annotations here: http://0.0.0.0:8501")
 
         subprocess.run(
             [
@@ -99,6 +98,9 @@ class DataFlywheel:
                 "data_flywheel/st_relabel.py",
                 "--server.address",
                 "0.0.0.0",
+                "--",
+                self.annotation_path,
+                self.image_path
             ]
         )
 

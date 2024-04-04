@@ -4,7 +4,8 @@ from streamlit_img_label import st_img_label
 from streamlit_img_label.manage import ImageManager, ImageDirManager
 from streamlit_shortcuts import add_keyboard_shortcuts
 from PIL import Image
-
+import argparse
+import json
 
 st.set_page_config(layout="wide")
 
@@ -139,6 +140,18 @@ def run(xml_dir, img_dir, labels):
     
     st.button(label="Save", on_click=save_annotation, args=(im, xml_file_name))
 
+# if __name__ == "__main__":
+#     custom_labels = ["person"]
+#     run('/root/data-flywheel/notebooks/objectlab/pascal_voc_annotations/', '/workspace/yolo_v8_training/oiv7_full/validation/', custom_labels)
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run object detection processing.')
+
+    parser.add_argument('xml_dir', type=str, help='Input directory path for xml annotations')
+    parser.add_argument('img_dir', type=str, help='Path to folder that stores the images')
+
+    args = parser.parse_args()
+
     custom_labels = ["person"]
-    run('/root/data-flywheel/notebooks/objectlab/pascal_voc_annotations/', '/workspace/yolo_v8_training/oiv7_full/validation/', custom_labels)
+    run(args.xml_dir, args.img_dir, custom_labels)
