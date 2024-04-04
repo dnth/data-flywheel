@@ -1,59 +1,115 @@
+import subprocess
+
+from fastai.callback.tracker import SaveModelCallback, ShowGraphCallback
+from icevision.all import *
 from loguru import logger
+
 
 class DataFlywheel:
     def __init__(self, config):
-        """
-        Initialize the DataFlywheel.
-
-        Args:
-            config (dict): Configuration for the DataFlywheel.
-        """
         self.config = config
-        self.model = None
-        self.data = None
+        self.annotation_path = config["annotation_path"]
+        self.image_path = config["image_path"]
 
-    def load_image_annotations(self):
+    def load_annotations(self):
         """Load existing image annotations."""
         logger.info("Loading image annotations...")
-        # Code to load existing image annotations
-        # Update self.data with loaded annotations
 
-    def train_model(self):
-        """Train a model using the annotated data."""
+        logger.info(f"  Annotations folder: {self.annotation_path}")
+        logger.info(f"  Image folder: {self.image_path}")
+
+        self._parser = parsers.VOCBBoxParser(
+            annotations_dir=self.annotation_path, images_dir=self.image_path
+        )
+
+        train_records, valid_records = self._parser.parse()  # Defaults to 80:20 split
+
+        image_size = 640
+        train_tfms = tfms.A.Adapter(
+            [*tfms.A.aug_tfms(size=image_size, presize=720), tfms.A.Normalize()]
+        )
+        valid_tfms = tfms.A.Adapter(
+            [*tfms.A.resize_and_pad(image_size), tfms.A.Normalize()]
+        )
+
+        self._train_ds = Dataset(train_records, train_tfms)
+        self._valid_ds = Dataset(valid_records, valid_tfms)
+
+        logger.info(f"  Train on {len(self._train_ds)} images")
+        logger.info(f"  Validate on {len(self._valid_ds)} images")
+
+    def train_model(self, batch_size=16, lr=1e-3, epoch=3):
+        logger.info("Loading model...")
+
+        self._model_type = models.mmdet.vfnet
+        backbone = self._model_type.backbones.resnet50_fpn_mstrain_2x
+        self._model = self._model_type.model(
+            backbone=backbone(pretrained=True), num_classes=len(self._parser.class_map)
+        )
+
+        train_dl = self._model_type.train_dl(
+            self._train_ds, batch_size=batch_size, num_workers=16, shuffle=True
+        )
+        valid_dl = self._model_type.valid_dl(
+            self._valid_ds, batch_size=batch_size, num_workers=16, shuffle=False
+        )
+
+        metrics = [COCOMetric(metric_type=COCOMetricType.bbox)]
+        learn = self._model_type.fastai.learner(
+            dls=[train_dl, valid_dl],
+            model=self._model,
+            metrics=metrics,
+            cbs=[ShowGraphCallback()],
+        )
+
         logger.info("Training model...")
-        # Code to train a model using self.data
-        # Update self.model with the trained model
+        learn.fine_tune(epoch, lr, freeze_epochs=1)
 
-    def predict(self, image):
-        """Use the trained model to make predictions for a new image."""
-        logger.info(f"Making predictions for image: {image}")
-        # Code to use self.model to make predictions for the given image
-        # Return the model's predictions
+    def get_most_wrong(self, method="top-loss"):
+        logger.info("Identifying most incorrect examples...")
+
+        sorted_samples, sorted_preds, losses_stats = (
+            self._model_type.interp.plot_top_losses(
+                self._model,
+                self._valid_ds,
+                sort_by="loss_total",
+                n_samples=20,
+                display_label=False,
+                color_map={"person": "cyan"},
+                bbox_thickness=5,
+            )
+        )
+
+        annotations_to_review = [pred.record_id + ".xml" for pred in sorted_preds]
+
+        with open("relabel_list.txt", "w") as file:
+            file.write("\n".join(annotations_to_review))
+
+        return annotations_to_review
 
     def relabel_data(self):
-        """Have the model re-label the training data."""
-        logger.info("Relabeling data...")
-        # Code to use self.model to re-label self.data
-        # Update self.data with the new labels
+        logger.info("Launching streamlit to review annotations...")
 
-    def export_labels(self):
-        """Export the new labels to a labeling tool for human review."""
-        logger.info("Exporting labels...")
-        # Code to export the labels from self.data to a labeling tool
+        logger.info("Review annotations: http://0.0.0.0:8501")
 
-    def get_most_wrong(self):
-        """Identify the examples the model struggled with most."""
-        logger.info("Identifying most incorrect examples...")
-        # Code to identify the examples in self.data that self.model
-        # struggled with most
-        # Return these examples
+        subprocess.run(
+            [
+                "streamlit",
+                "run",
+                "data_flywheel/st_relabel.py",
+                "--server.address",
+                "0.0.0.0",
+            ]
+        )
 
     def run_flywheel(self):
         """Execute the full DataFlywheel workflow."""
         logger.info("Starting DataFlywheel workflow...")
-        self.load_image_annotations()
+        self.load_annotations()
         self.train_model()
         self.relabel_data()
         self.export_labels()
         most_wrong = self.get_most_wrong()
-        logger.info(f"DataFlywheel workflow completed. Most incorrect examples: {most_wrong}")
+        logger.info(
+            f"DataFlywheel workflow completed. Most incorrect examples: {most_wrong}"
+        )
