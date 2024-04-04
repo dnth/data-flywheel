@@ -8,6 +8,9 @@ Install
 ```
 git clone https://github.com/dnth/data-flywheel
 cd data-flywheel
+```
+
+```
 ./setup_runpod.sh
 pip install -e .
 ```
