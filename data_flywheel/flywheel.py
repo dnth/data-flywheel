@@ -52,7 +52,7 @@ class DataFlywheel:
         logger.info(f"  Train on {len(self._train_ds)} images")
         logger.info(f"  Validate on {len(self._valid_ds)} images")
 
-    def train_model(self, batch_size=16, lr=1e-3, epoch=3):
+    def train_model(self, batch_size=16, lr=1e-3, epoch=3, freeze_epoch=1):
         logger.info("Loading model...")
 
         self._model_type = models.mmdet.vfnet
@@ -68,16 +68,21 @@ class DataFlywheel:
             self._valid_ds, batch_size=batch_size, num_workers=16, shuffle=False
         )
 
+        cbs = [ShowGraphCallback(), SaveModelCallback(fname='best_model')]
+
+        if self.log_wandb:
+            cbs.append(WandbCallback())
+
         metrics = [COCOMetric(metric_type=COCOMetricType.bbox)]
         learn = self._model_type.fastai.learner(
             dls=[train_dl, valid_dl],
             model=self._model,
             metrics=metrics,
-            cbs=[ShowGraphCallback(), SaveModelCallback(fname='best_model')],
+            cbs=cbs
         )
 
         logger.info("Training model...")
-        learn.fine_tune(epoch, lr, freeze_epochs=1)
+        learn.fine_tune(epoch, lr, freeze_epochs=freeze_epoch)
 
         # Save checkpoint
         save_icevision_checkpoint(self._model,
