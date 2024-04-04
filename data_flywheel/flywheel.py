@@ -2,6 +2,9 @@ import subprocess
 
 from fastai.callback.tracker import SaveModelCallback, ShowGraphCallback
 from icevision.all import *
+from icevision.models.checkpoint import *
+from fastai.callback.wandb import *
+
 from loguru import logger
 
 
@@ -10,6 +13,17 @@ class DataFlywheel:
         self.config = config
         self.annotation_path = config["annotation_path"]
         self.image_path = config["image_path"]
+        self.wandb_project = config["wandb_project"]
+        self.log_wandb = config["log_wandb"]
+
+        if self.log_wandb:
+            wandb.init(project=self.wandb_project, reinit=True)
+
+            # Log wandb annnotations
+            artifact = wandb.Artifact("xmls", type="annotations")
+            artifact.add_dir(self.annotation_path)
+            wandb.log_artifact(artifact)
+
 
     def load_annotations(self):
         """Load existing image annotations."""
@@ -59,11 +73,20 @@ class DataFlywheel:
             dls=[train_dl, valid_dl],
             model=self._model,
             metrics=metrics,
-            cbs=[ShowGraphCallback()],
+            cbs=[ShowGraphCallback(), SaveModelCallback(fname='best_model')],
         )
 
         logger.info("Training model...")
         learn.fine_tune(epoch, lr, freeze_epochs=1)
+
+        # Save checkpoint
+        save_icevision_checkpoint(self._model,
+                        model_name='mmdet.vfnet', 
+                        backbone_name='resnet50_fpn_mstrain_2x',
+                        img_size=640,
+                        classes=self._parser.class_map.get_classes(),
+                        filename='./models/model_checkpoint.pth',
+                        meta={'icevision_version': 'master'})
 
     def get_most_wrong(self, method="top-loss"):
         logger.info("Identifying most incorrect examples...")
@@ -79,6 +102,12 @@ class DataFlywheel:
                 bbox_thickness=5,
             )
         )
+
+        if self.log_wandb:
+            # Log top loss images
+            wandb_images = wandb_img_preds(sorted_preds, add_ground_truth=True) 
+            wandb.log({"Highest loss images": wandb_images})
+            wandb.finish()
 
         annotations_to_review = [pred.record_id + ".xml" for pred in sorted_preds]
 
@@ -104,14 +133,14 @@ class DataFlywheel:
             ]
         )
 
-    def run_flywheel(self):
-        """Execute the full DataFlywheel workflow."""
-        logger.info("Starting DataFlywheel workflow...")
-        self.load_annotations()
-        self.train_model()
-        self.relabel_data()
-        self.export_labels()
-        most_wrong = self.get_most_wrong()
-        logger.info(
-            f"DataFlywheel workflow completed. Most incorrect examples: {most_wrong}"
-        )
+    # def run_flywheel(self):
+    #     """Execute the full DataFlywheel workflow."""
+    #     logger.info("Starting DataFlywheel workflow...")
+    #     self.load_annotations()
+    #     self.train_model()
+    #     self.relabel_data()
+    #     self.export_labels()
+    #     most_wrong = self.get_most_wrong()
+    #     logger.info(
+    #         f"DataFlywheel workflow completed. Most incorrect examples: {most_wrong}"
+    #     )
