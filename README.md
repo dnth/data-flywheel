@@ -3,17 +3,12 @@ Data flywheel to iteratively correct object detection annotations
 
 ![image](./assets/data_flywheel.jpg)
 
-```
-git clone https://github.com/dnth/data-flywheel
-```
-
 Install
 
 ```
+git clone https://github.com/dnth/data-flywheel
+cd data-flywheel
 ./setup_runpod.sh
-```
-
-```
 pip install -e .
 ```
 
