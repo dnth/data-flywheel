@@ -16,6 +16,8 @@ class DataFlywheel:
         self.wandb_project = config["wandb_project"]
         self.log_wandb = config["log_wandb"]
 
+        self.annotations_to_review = []
+
         if self.log_wandb:
             wandb.init(project=self.wandb_project, reinit=True)
 
@@ -114,12 +116,12 @@ class DataFlywheel:
             wandb.log({"Highest loss images": wandb_images})
             wandb.finish()
 
-        annotations_to_review = [pred.record_id + ".xml" for pred in sorted_preds]
+        self.annotations_to_review = [pred.record_id + ".xml" for pred in sorted_preds]
 
         with open("relabel_list.txt", "w") as file:
-            file.write("\n".join(annotations_to_review))
+            file.write("\n".join(self.annotations_to_review))
 
-        return annotations_to_review
+        return self.annotations_to_review
 
     def relabel_data(self):
         logger.info("Launching streamlit to review annotations...")
@@ -138,14 +140,10 @@ class DataFlywheel:
             ]
         )
 
-    # def run_flywheel(self):
-    #     """Execute the full DataFlywheel workflow."""
-    #     logger.info("Starting DataFlywheel workflow...")
-    #     self.load_annotations()
-    #     self.train_model()
-    #     self.relabel_data()
-    #     self.export_labels()
-    #     most_wrong = self.get_most_wrong()
-    #     logger.info(
-    #         f"DataFlywheel workflow completed. Most incorrect examples: {most_wrong}"
-    #     )
+    def run(self):
+        """Execute the full DataFlywheel workflow."""
+        logger.info("Running one full cycle of the flywheel...")
+        self.load_annotations()
+        self.train_model(batch_size=32, epoch=10, freeze_epoch=3)
+        self.get_most_wrong(method='top-loss')
+        logger.info("DataFlywheel workflow completed")
