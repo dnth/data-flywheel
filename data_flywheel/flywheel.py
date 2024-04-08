@@ -27,7 +27,7 @@ class DataFlywheel:
             wandb.log_artifact(artifact)
 
 
-    def load_annotations(self):
+    def load_annotations(self, image_size=720):
         """Load existing image annotations."""
         logger.info("Loading image annotations...")
 
@@ -38,35 +38,34 @@ class DataFlywheel:
             annotations_dir=self.annotation_path, images_dir=self.image_path
         )
 
-        train_records, valid_records = self._parser.parse()  # Defaults to 80:20 split
+        _train_records, _valid_records = self._parser.parse()  # Defaults to 80:20 split
 
-        image_size = 640
-        train_tfms = tfms.A.Adapter(
-            [*tfms.A.aug_tfms(size=image_size, presize=720), tfms.A.Normalize()]
+        _train_tfms = tfms.A.Adapter(
+            [*tfms.A.aug_tfms(size=image_size, presize=int(image_size * 1.2)), tfms.A.Normalize()]
         )
-        valid_tfms = tfms.A.Adapter(
+        _valid_tfms = tfms.A.Adapter(
             [*tfms.A.resize_and_pad(image_size), tfms.A.Normalize()]
         )
 
-        self._train_ds = Dataset(train_records, train_tfms)
-        self._valid_ds = Dataset(valid_records, valid_tfms)
+        self._train_ds = Dataset(_train_records, _train_tfms)
+        self._valid_ds = Dataset(_valid_records, _valid_tfms)
 
         logger.info(f"  Train on {len(self._train_ds)} images")
         logger.info(f"  Validate on {len(self._valid_ds)} images")
 
-    def train_model(self, batch_size=16, lr=1e-3, epoch=3, freeze_epoch=1):
+    def load_model(self, batch_size=16):
         logger.info("Loading model...")
 
         self._model_type = models.mmdet.vfnet
-        backbone = self._model_type.backbones.resnet50_fpn_mstrain_2x
+        self._backbone = self._model_type.backbones.resnet50_fpn_mstrain_2x
         self._model = self._model_type.model(
-            backbone=backbone(pretrained=True), num_classes=len(self._parser.class_map)
+            backbone=self._backbone(pretrained=True), num_classes=len(self._parser.class_map)
         )
 
-        train_dl = self._model_type.train_dl(
+        _train_dl = self._model_type.train_dl(
             self._train_ds, batch_size=batch_size, num_workers=16, shuffle=True
         )
-        valid_dl = self._model_type.valid_dl(
+        _valid_dl = self._model_type.valid_dl(
             self._valid_ds, batch_size=batch_size, num_workers=16, shuffle=False
         )
 
@@ -76,15 +75,19 @@ class DataFlywheel:
             cbs.append(WandbCallback())
 
         metrics = [COCOMetric(metric_type=COCOMetricType.bbox)]
-        learn = self._model_type.fastai.learner(
-            dls=[train_dl, valid_dl],
+        
+        self.learn = self._model_type.fastai.learner(
+            dls=[_train_dl, _valid_dl],
             model=self._model,
             metrics=metrics,
             cbs=cbs
         )
 
+        self.learn.lr_find()
+
+    def train_model(self, lr=1e-3, epoch=3, freeze_epoch=1):
         logger.info("Training model...")
-        learn.fine_tune(epoch, lr, freeze_epochs=freeze_epoch)
+        self.learn.fine_tune(epoch, lr, freeze_epochs=freeze_epoch)
 
         # Save checkpoint
         save_icevision_checkpoint(self._model,
@@ -140,10 +143,10 @@ class DataFlywheel:
             ]
         )
 
-    def run(self):
+    def run(self, batch_size=32, epoch=10, freeze_epoch=3, image_size=720):
         """Execute the full DataFlywheel workflow."""
         logger.info("Running one full cycle of the flywheel...")
-        self.load_annotations()
-        self.train_model(batch_size=32, epoch=10, freeze_epoch=3)
+        self.load_annotations(image_size=image_size)
+        self.train_model(batch_size=batch_size, epoch=epoch, freeze_epoch=freeze_epoch)
         self.get_most_wrong(method='top-loss')
         logger.info("DataFlywheel workflow completed")
