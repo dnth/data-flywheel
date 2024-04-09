@@ -108,8 +108,8 @@ class DataFlywheel:
                 self._valid_ds,
                 sort_by="loss_total",
                 n_samples=20,
-                display_label=False,
-                color_map={"person": "cyan"},
+                display_label=True,
+                # color_map={"person": "cyan"},
                 bbox_thickness=5,
             )
         )
