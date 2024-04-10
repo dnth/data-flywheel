@@ -59,7 +59,8 @@ class DataFlywheel:
         logger.info(f"  Validate on {len(self._valid_ds)} images")
 
         if show:
-            samples = [self._train_ds[2] for _ in range(3)]
+            random_int = random.randint(0, len(self._train_ds) - 1)
+            samples = [self._train_ds[random_int] for _ in range(6)]
             show_samples(samples, ncols=3, display_label=False, color_map={self.object_class_name:"limegreen"}, bbox_thickness=5)
 
 
