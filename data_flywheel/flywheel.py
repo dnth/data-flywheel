@@ -6,7 +6,7 @@ from icevision.models.checkpoint import *
 from fastai.callback.wandb import *
 
 from loguru import logger
-
+import random
 
 class DataFlywheel:
     def __init__(self, config):
@@ -15,6 +15,11 @@ class DataFlywheel:
         self.image_path = config["image_path"]
         self.wandb_project = config["wandb_project"]
         self.log_wandb = config["log_wandb"]
+        self.image_size = config["image_size"]
+        self.object_class_name = config["object_class_name"]
+
+
+
 
         self.annotations_to_review = []
 
@@ -27,7 +32,7 @@ class DataFlywheel:
             wandb.log_artifact(artifact)
 
 
-    def load_annotations(self, image_size=720):
+    def load_annotations(self, show=False):
         """Load existing image annotations."""
         logger.info("Loading image annotations...")
 
@@ -41,10 +46,10 @@ class DataFlywheel:
         _train_records, _valid_records = self._parser.parse()  # Defaults to 80:20 split
 
         _train_tfms = tfms.A.Adapter(
-            [*tfms.A.aug_tfms(size=image_size, presize=int(image_size * 1.2)), tfms.A.Normalize()]
+            [*tfms.A.aug_tfms(size=self.image_size, presize=int(self.image_size * 1.2)), tfms.A.Normalize()]
         )
         _valid_tfms = tfms.A.Adapter(
-            [*tfms.A.resize_and_pad(image_size), tfms.A.Normalize()]
+            [*tfms.A.resize_and_pad(self.image_size), tfms.A.Normalize()]
         )
 
         self._train_ds = Dataset(_train_records, _train_tfms)
@@ -52,6 +57,11 @@ class DataFlywheel:
 
         logger.info(f"  Train on {len(self._train_ds)} images")
         logger.info(f"  Validate on {len(self._valid_ds)} images")
+
+        if show:
+            samples = [self._train_ds[2] for _ in range(3)]
+            show_samples(samples, ncols=3, display_label=False, color_map={self.object_class_name:"limegreen"}, bbox_thickness=5)
+
 
     def load_model(self, batch_size=16):
         logger.info("Loading model...")
@@ -108,8 +118,8 @@ class DataFlywheel:
                 self._valid_ds,
                 sort_by="loss_total",
                 n_samples=20,
-                display_label=True,
-                # color_map={"person": "cyan"},
+                display_label=False,
+                color_map={self.object_class_name: "limegreen"},
                 bbox_thickness=5,
             )
         )
