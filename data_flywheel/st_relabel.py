@@ -17,15 +17,15 @@ def setup_shortcuts():
         's': "Remove XML file"
     })
 
-def setup_session_state(idm):
+def setup_session_state(idm, relabel_filename):
     if "files" not in st.session_state:
-        st.session_state["files"] = idm.get_exist_annotation_files('/root/data-flywheel/relabel_list.txt')
+        st.session_state["files"] = idm.get_exist_annotation_files(relabel_filename)
         st.session_state["image_index"] = 0
     else:
         idm.set_annotation_files(st.session_state["files"])
 
-def refresh(idm):
-    st.session_state["files"] = idm.get_exist_annotation_files('relabel_list.txt')
+def refresh(idm, relabel_filename):
+    st.session_state["files"] = idm.get_exist_annotation_files(relabel_filename)
     st.session_state["image_index"] = 0
 
 def change_image(delta):
@@ -114,10 +114,10 @@ def display_annotation(im, labels):
                 im.set_annotation(i, select_label)
 
 
-def run(xml_dir, img_dir, labels):
+def run(xml_dir, img_dir, relabel_filename, labels):
     st.set_option("deprecation.showfileUploaderEncoding", False)
     idm = ImageDirManager(img_dir, xml_dir)
-    setup_session_state(idm)
+    setup_session_state(idm, relabel_filename)
     setup_shortcuts()
     
     xml_file_name = st.session_state["files"][st.session_state["image_index"]]
@@ -137,21 +137,15 @@ def run(xml_dir, img_dir, labels):
     display_sidebar(xml_dir)
     display_annotation(im, labels)
     
-    
     st.button(label="Save", on_click=save_annotation, args=(im, xml_file_name))
-
-# if __name__ == "__main__":
-#     custom_labels = ["person"]
-#     run('/root/data-flywheel/notebooks/objectlab/pascal_voc_annotations/', '/workspace/yolo_v8_training/oiv7_full/validation/', custom_labels)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run object detection processing.')
-
     parser.add_argument('xml_dir', type=str, help='Input directory path for xml annotations')
     parser.add_argument('img_dir', type=str, help='Path to folder that stores the images')
-
+    parser.add_argument('relabel_filename', type=str, help='Filename to relabel')
+    parser.add_argument('--custom_labels', nargs='+', default=["person"], help='List of custom labels (default: ["person"])')
     args = parser.parse_args()
 
-    custom_labels = ["person"]
-    run(args.xml_dir, args.img_dir, custom_labels)
+    run(args.xml_dir, args.img_dir, args.relabel_filename, args.custom_labels)

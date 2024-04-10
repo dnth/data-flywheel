@@ -18,15 +18,11 @@ class DataFlywheel:
         self.image_size = config["image_size"]
         self.object_class_name = config["object_class_name"]
 
-
-
-
         self.annotations_to_review = []
 
         if self.log_wandb:
             wandb.init(project=self.wandb_project, reinit=True)
 
-            # Log wandb annnotations
             artifact = wandb.Artifact("xmls", type="annotations")
             artifact.add_dir(self.annotation_path)
             wandb.log_artifact(artifact)
@@ -138,22 +134,39 @@ class DataFlywheel:
 
         return self.annotations_to_review
 
-    def relabel_data(self):
+    def relabel_data(self, relabel_filename):
         logger.info("Launching streamlit to review annotations...")
         logger.info("Review annotations here: http://0.0.0.0:8501")
 
-        subprocess.run(
-            [
-                "streamlit",
-                "run",
-                "data_flywheel/st_relabel.py",
-                "--server.address",
-                "0.0.0.0",
-                "--",
-                self.annotation_path,
-                self.image_path
-            ]
-        )
+        try:
+            result = subprocess.run(
+                [
+                    "streamlit",
+                    "run",
+                    "/root/data-flywheel/data_flywheel/st_relabel.py",
+                    "--server.address",
+                    "0.0.0.0",
+                    "--",
+                    self.annotation_path,
+                    self.image_path,
+                    relabel_filename,
+                    "--custom_labels",
+                    self.object_class_name
+                ],
+                capture_output=True,
+                text=True
+            )
+            
+            # Check if the command executed successfully
+            if result.returncode == 0:
+                logger.info("Command executed successfully.")
+            else:
+                logger.error("Command failed with error:")
+                logger.error(result.stderr)
+                
+        except subprocess.CalledProcessError as e:
+            logger.error("Command failed with error:")
+            logger.error(e.stderr)
 
     def run(self, lr=1e-3, batch_size=16, epoch=10, freeze_epoch=3, image_size=720):
         """Execute the full DataFlywheel workflow."""
