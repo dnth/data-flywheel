@@ -76,6 +76,9 @@ echo -e "${GREEN}Installing nvtop and htop${NC}"
 apt update
 apt install -y nvtop htop
 
+echo -e "${GREEN}Installing data_flywheel module..${NC}"
+cd /root/data-flywheel
+pip install -e . 
 
 echo -e "${YELLOW}Testing icevision imports..${NC}"
 if python -c "from icevision.all import *" 2>/dev/null; then
