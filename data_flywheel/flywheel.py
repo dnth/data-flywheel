@@ -241,10 +241,10 @@ class DataFlywheel:
             logger.error("Command failed with error:")
             logger.error(e.stderr)
 
-    def run(self, lr=1e-3, batch_size=16, epoch=10, freeze_epoch=3, image_size=720):
+    def run(self, lr=1e-3, batch_size=16, epoch=10, freeze_epoch=3):
         """Execute the full DataFlywheel workflow."""
         logger.info("Running one full cycle of the flywheel...")
-        self.load_annotations(image_size=image_size)
+        self.load_annotations()
         self.load_model(batch_size=batch_size)
         self.train_model(lr=lr, epoch=epoch, freeze_epoch=freeze_epoch)
         self.get_most_wrong(method="top-loss")
