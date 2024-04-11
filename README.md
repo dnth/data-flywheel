@@ -12,11 +12,15 @@ cd data-flywheel
 
 ```
 ./setup_runpod.sh
-pip install -e .
 ```
 
+In a new terminal, activate the data_flywheel conda environment
 
-Run pipeline
+```
+conda activate data_flywheel
+```
+
+and run the pipeline
 
 ```
 python run_pipeline.py
