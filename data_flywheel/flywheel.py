@@ -24,7 +24,7 @@ class DataFlywheel:
         if self.log_wandb:
             wandb.init(project=self.wandb_project, reinit=True)
 
-            artifact = wandb.Artifact("xmls", type="annotations")
+            artifact = wandb.Artifact("input_annotations", type="xml")
             artifact.add_dir(self.annotation_path)
             wandb.log_artifact(artifact)
 
@@ -132,6 +132,11 @@ class DataFlywheel:
         ]
 
         df_annots.to_parquet(f"{output_filename}")
+
+        artifact = wandb.Artifact("output_annotations", type="dataframe")
+        artifact.add_file(output_filename)
+        wandb.log_artifact(artifact)
+
 
     def load_model(self, batch_size=16):
         logger.info("Loading model...")
