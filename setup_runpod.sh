@@ -13,8 +13,8 @@ echo -e "${YELLOW}Installing Miniforge...${NC}"
 bash Miniforge-pypy3-Linux-x86_64.sh -b -p /root/miniforge-pypy3
 source /root/miniforge-pypy3/bin/activate
 echo -e "${YELLOW}Creating conda environment...${NC}"
-conda create -n icevision python=3.10 -y
-conda activate icevision
+conda create -n data_flywheel python=3.10 -y
+conda activate data_flywheel
 
 echo -e "${GREEN}Running conda init${NC}"
 /root/miniforge-pypy3/bin/conda init
@@ -39,7 +39,7 @@ echo -e "${GREEN}Installing mmdet${NC}"
 pip install mmdet==2.28.2 --upgrade
 
 echo -e "${YELLOW}Altering mmdet buggy line of code${NC}"
-file_path="/root/miniforge-pypy3/envs/icevision/lib/python3.10/site-packages/mmdet/datasets/builder.py"
+file_path="/root/miniforge-pypy3/envs/data_flywheel/lib/python3.10/site-packages/mmdet/datasets/builder.py"
 original_line="resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))"
 new_line="resource.setrlimit(resource.RLIMIT_NOFILE, (4096, 4096))"
 if [ -f "$file_path" ]; then
@@ -51,7 +51,7 @@ else
 fi
 
 echo -e "${YELLOW}Modifying vfnet_head.py file${NC}"
-file_path="/root/miniforge-pypy3/envs/icevision/lib/python3.10/site-packages/mmdet/models/dense_heads/vfnet_head.py"
+file_path="/root/miniforge-pypy3/envs/data_flywheel/lib/python3.10/site-packages/mmdet/models/dense_heads/vfnet_head.py"
 if [ -f "$file_path" ]; then
   sed -i '/if self.training:/,/return cls_score, bbox_pred_refine/c\        return cls_score, bbox_pred, bbox_pred_refine' "$file_path"
   echo "${GREEN}File modified successfully.${NC}"
@@ -76,6 +76,9 @@ echo -e "${GREEN}Installing nvtop and htop${NC}"
 apt update
 apt install -y nvtop htop
 
+echo -e "${GREEN}Installing data_flywheel module..${NC}"
+cd /root/data-flywheel
+pip install -e . 
 
 echo -e "${YELLOW}Testing icevision imports..${NC}"
 if python -c "from icevision.all import *" 2>/dev/null; then
