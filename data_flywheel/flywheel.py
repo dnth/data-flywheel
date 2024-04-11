@@ -268,7 +268,7 @@ class DataFlywheel:
 
         return self.annotations_to_review
 
-    def relabel_data(self, relabel_filename):
+    def relabel_data(self, relabel_filename='relabel_list.txt'):
         logger.info("Launching streamlit to review annotations...")
         logger.info("Review annotations here: http://0.0.0.0:8501")
 
