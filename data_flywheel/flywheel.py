@@ -1,21 +1,29 @@
+import os
+import random
 import subprocess
+import xml.etree.ElementTree as ET
 
+import pandas as pd
 from fastai.callback.tracker import SaveModelCallback, ShowGraphCallback
+from fastai.callback.wandb import *
 from icevision.all import *
 from icevision.models.checkpoint import *
-from fastai.callback.wandb import *
-
 from loguru import logger
-import random
+from tqdm.auto import tqdm
+
+from .utils import create_voc_xml
 
 
 class DataFlywheel:
     def __init__(self, config):
         self.config = config
-        self.annotation_path = config["annotation_path"]
+        self.annotation_parquet = config["annotation_parquet"]  # parquet files downloaded from S3
+        self.voc_annotations_folder = config["voc_annotations_folder"] # where to store the voc format
         self.image_path = config["image_path"]
-        self.wandb_project = config["wandb_project"]
+        
         self.log_wandb = config["log_wandb"]
+        self.wandb_project = config["wandb_project"]
+        
         self.image_size = config["image_size"]
         self.object_class_name = config["object_class_name"]
 
@@ -24,19 +32,66 @@ class DataFlywheel:
         if self.log_wandb:
             wandb.init(project=self.wandb_project, reinit=True)
 
-            artifact = wandb.Artifact("input_annotations", type="xml")
-            artifact.add_dir(self.annotation_path)
-            wandb.log_artifact(artifact)
-
-    def load_annotations(self, show=False):
+    def load_annotations(self, show=False, reinit=False):
         """Load existing image annotations."""
         logger.info("Loading image annotations...")
 
-        logger.info(f"  Annotations folder: {self.annotation_path}")
+        df = pd.read_parquet(self.annotation_parquet)
+        df = df[df["label"] == self.object_class_name]
+
+        df = pd.DataFrame(
+            {
+                "filename": df["filename"],
+                "label": df["label"],
+                "confidence": df["confidence"],
+                "x1": df["col_x"],
+                "y1": df["row_y"],
+                "x2": df["col_x"] + df["width"],
+                "y2": df["row_y"] + df["height"],
+            }
+        )
+
+        df = df.astype({'x1': int, 'y1': int, 'x2': int,  'y2': int})
+
+        if reinit:
+            if os.path.exists(self.voc_annotations_folder):
+                shutil.rmtree(self.voc_annotations_folder)
+
+        os.makedirs(
+            self.voc_annotations_folder, exist_ok=True
+        )
+
+        grouped_df = (
+            df.groupby("filename")
+            .apply(lambda x: x.to_dict("records"))
+            .reset_index(name="objects")
+        )
+
+        for row in tqdm(
+            grouped_df.itertuples(index=False),
+            total=len(grouped_df),
+            desc="Converting to VOC",
+            unit=" imgs",
+        ):
+            filename = row.filename
+            objects = row.objects
+            create_voc_xml(filename, objects, self.voc_annotations_folder)
+
+        logger.info(f"  VOC Annotations folder: {self.voc_annotations_folder}")
         logger.info(f"  Image folder: {self.image_path}")
 
+        if self.log_wandb:
+            artifact = wandb.Artifact("input_annotations_xml", type="xml")
+            artifact.add_dir(self.voc_annotations_folder)
+            wandb.log_artifact(artifact)
+
+            artifact = wandb.Artifact("input_annotations_df", type="dataframe")
+            artifact.add_file(self.annotation_parquet)
+            wandb.log_artifact(artifact)
+
+
         self._parser = parsers.VOCBBoxParser(
-            annotations_dir=self.annotation_path, images_dir=self.image_path
+            annotations_dir=self.voc_annotations_folder, images_dir=self.image_path
         )
 
         _train_records, _valid_records = self._parser.parse()  # Defaults to 80:20 split
@@ -70,9 +125,7 @@ class DataFlywheel:
                 bbox_thickness=5,
             )
 
-    def export_annotations(self, folder_path, output_filename):
-        import xml.etree.ElementTree as ET
-        import pandas as pd
+    def export_annotations(self, output_filename):
 
         def process_xml_file(file_path):
             tree = ET.parse(file_path)
@@ -108,13 +161,12 @@ class DataFlywheel:
             return data
 
         data = []
-        for filename in os.listdir(folder_path):
+        for filename in os.listdir(self.voc_annotations_folder):
             if filename.endswith(".xml"):
-                file_path = os.path.join(folder_path, filename)
+                file_path = os.path.join(self.voc_annotations_folder, filename)
                 xml_data = process_xml_file(file_path)
                 data.extend(xml_data)
 
-        # Create the DataFrame
         df_annots = pd.DataFrame(data)
 
         df_annots = df_annots[["filename", "name", "xmin", "ymin", "xmax", "ymax"]]
@@ -133,10 +185,15 @@ class DataFlywheel:
 
         df_annots.to_parquet(f"{output_filename}")
 
-        artifact = wandb.Artifact("output_annotations", type="dataframe")
-        artifact.add_file(output_filename)
-        wandb.log_artifact(artifact)
-
+        if self.log_wandb:
+            artifact = wandb.Artifact("output_annotations_xml", type="xml")
+            artifact.add_dir(self.voc_annotations_folder)
+            wandb.log_artifact(artifact)
+        
+            artifact = wandb.Artifact("output_annotations_df", type="dataframe")
+            artifact.add_file(output_filename)
+            wandb.log_artifact(artifact)
+            wandb.finish()
 
     def load_model(self, batch_size=16):
         logger.info("Loading model...")
@@ -203,7 +260,6 @@ class DataFlywheel:
             # Log top loss images
             wandb_images = wandb_img_preds(sorted_preds, add_ground_truth=True)
             wandb.log({"Highest loss images": wandb_images})
-            wandb.finish()
 
         self.annotations_to_review = [pred.record_id + ".xml" for pred in sorted_preds]
 
@@ -225,7 +281,7 @@ class DataFlywheel:
                     "--server.address",
                     "0.0.0.0",
                     "--",
-                    self.annotation_path,
+                    self.voc_annotations_folder,
                     self.image_path,
                     relabel_filename,
                     "--custom_labels",
