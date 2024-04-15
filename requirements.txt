@@ -3,6 +3,9 @@ icevision[all] @ git+https://github.com/dnth/icevision.git
 torch==2.1.0+cu118
 torchvision==0.16.0+cu118
 torchaudio==2.1.0+cu118
+openmim
+ninja
+psutil
 mmcv-full==1.7.2
 mmdet==2.28.2
 streamlit
