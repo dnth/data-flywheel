@@ -1,2 +1,14 @@
-loguru>=0.7.0
-streamlit>=1.32.0
+loguru
+icevision[all] @ git+https://github.com/dnth/icevision.git
+torch==2.1.0
+torchvision==0.16.0
+torchaudio==2.1.0
+mmcv-full==1.7.2
+mmdet==2.28.2
+streamlit
+streamlit-shortcuts
+streamlit-img-label @ git+https://github.com/dnth/streamlit-img-label.git
+pyarrow
+ipywidgets
+gdown
+pascal-voc-writer
