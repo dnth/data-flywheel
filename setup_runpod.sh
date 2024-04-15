@@ -7,7 +7,7 @@ NC='\033[0m' # No Color
 
 
 echo -e "${GREEN}Installing icevision${NC}"
-pip install git+https://github.com/dnth/icevision.git#egg=icevision[all]
+pip install "icevision[all] @ git+https://github.com/dnth/icevision.git"
 
 # Skip pytorch installation if version matches
 echo -e "${GREEN}Installing torch and its dependencies${NC}"
@@ -58,7 +58,7 @@ echo -e "${GREEN}Installing streamlit and its dependencies...${NC}"
 pip install streamlit streamlit-shortcuts -q
 
 echo -e "${GREEN}Installing dnth/streamlit-img-label${NC}"
-pip install git+https://github.com/dnth/streamlit-img-label.git#egg=streamlit-img-label
+pip install "streamlit-img-label @ git+https://github.com/dnth/streamlit-img-label.git"
 
 echo -e "${GREEN}Installing other labeling dependencies...${NC}"
 pip install pyarrow ipywidgets gdown pascal-voc-writer -q
