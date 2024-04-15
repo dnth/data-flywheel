@@ -24,7 +24,6 @@ class DataFlywheel:
         self.log_wandb = config["log_wandb"]
         self.wandb_project = config["wandb_project"]
         
-        self.image_size = config["image_size"]
         self.object_class_name = config["object_class_name"]
 
         self.annotations_to_review = []
@@ -32,7 +31,7 @@ class DataFlywheel:
         if self.log_wandb:
             wandb.init(project=self.wandb_project, reinit=True)
 
-    def load_annotations(self, show=False, reinit=False):
+    def load_annotations(self, image_size,  show=False, reinit=False):
         """Load existing image annotations."""
         logger.info("Loading image annotations...")
 
@@ -99,13 +98,13 @@ class DataFlywheel:
         _train_tfms = tfms.A.Adapter(
             [
                 *tfms.A.aug_tfms(
-                    size=self.image_size, presize=int(self.image_size * 1.2)
+                    size=image_size, presize=int(image_size * 1.2)
                 ),
                 tfms.A.Normalize(),
             ]
         )
         _valid_tfms = tfms.A.Adapter(
-            [*tfms.A.resize_and_pad(self.image_size), tfms.A.Normalize()]
+            [*tfms.A.resize_and_pad(image_size), tfms.A.Normalize()]
         )
 
         self._train_ds = Dataset(_train_records, _train_tfms)
