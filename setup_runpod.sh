@@ -5,30 +5,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Setting up conda virtual env${NC}"
-cd /root
-echo -e "${YELLOW}Downloading Miniforge installer...${NC}"
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge-pypy3-Linux-x86_64.sh
-echo -e "${YELLOW}Installing Miniforge...${NC}"
-bash Miniforge-pypy3-Linux-x86_64.sh -b -p /root/miniforge-pypy3
-source /root/miniforge-pypy3/bin/activate
-echo -e "${YELLOW}Creating conda environment...${NC}"
-conda create -n data_flywheel python=3.10 -y
-conda activate data_flywheel
 
-echo -e "${GREEN}Running conda init${NC}"
-/root/miniforge-pypy3/bin/conda init
+echo -e "${GREEN}Installing icevision${NC}"
+pip install git+https://github.com/dnth/icevision.git#egg=icevision[all]
 
-echo -e "${GREEN}Installing icevision from master${NC}"
-cd /root
-echo -e "${YELLOW}Cloning icevision repository...${NC}"
-git clone https://github.com/dnth/icevision
-cd icevision
-echo -e "${YELLOW}Installing icevision dependencies...${NC}"
-pip install -e .[all]
-
+# Skip pytorch installation if version matches
 echo -e "${GREEN}Installing torch and its dependencies${NC}"
-pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118 --upgrade
+version=$(python -c "import torch; print(torch.__version__)")
+
+if [[ $version != "2.1.0+cu118" ]]; then
+    echo "PyTorch version $version does not match the desired version 2.1.0+cu118"
+    echo "Running pip install command..."
+    
+    pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118 --upgrade
+    
+    echo "PyTorch installation completed."
+else
+    echo "PyTorch version $version matches the desired version 2.1.0+cu118"
+    echo "No need to run pip install."
+fi
 
 echo -e "${GREEN}Installing mmcv${NC}"
 pip install -U openmim
@@ -39,7 +34,7 @@ echo -e "${GREEN}Installing mmdet${NC}"
 pip install mmdet==2.28.2 --upgrade
 
 echo -e "${YELLOW}Altering mmdet buggy line of code${NC}"
-file_path="/root/miniforge-pypy3/envs/data_flywheel/lib/python3.10/site-packages/mmdet/datasets/builder.py"
+file_path="/usr/local/lib/python3.10/dist-packages/mmdet/datasets/builder.py"
 original_line="resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))"
 new_line="resource.setrlimit(resource.RLIMIT_NOFILE, (4096, 4096))"
 if [ -f "$file_path" ]; then
@@ -51,7 +46,7 @@ else
 fi
 
 echo -e "${YELLOW}Modifying vfnet_head.py file${NC}"
-file_path="/root/miniforge-pypy3/envs/data_flywheel/lib/python3.10/site-packages/mmdet/models/dense_heads/vfnet_head.py"
+file_path="/usr/local/lib/python3.10/dist-packages/mmdet/models/dense_heads/vfnet_head.py"
 if [ -f "$file_path" ]; then
   sed -i '/if self.training:/,/return cls_score, bbox_pred_refine/c\        return cls_score, bbox_pred, bbox_pred_refine' "$file_path"
   echo "${GREEN}File modified successfully.${NC}"
@@ -63,11 +58,7 @@ echo -e "${GREEN}Installing streamlit and its dependencies...${NC}"
 pip install streamlit streamlit-shortcuts -q
 
 echo -e "${GREEN}Installing dnth/streamlit-img-label${NC}"
-cd /root
-echo -e "${YELLOW}Cloning streamlit-img-label repository...${NC}"
-git clone https://github.com/dnth/streamlit-img-label/ -b icevision
-cd streamlit-img-label
-pip install -e .
+pip install git+https://github.com/dnth/streamlit-img-label.git#egg=streamlit-img-label
 
 echo -e "${GREEN}Installing other labeling dependencies...${NC}"
 pip install pyarrow ipywidgets gdown pascal-voc-writer -q
